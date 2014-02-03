@@ -174,7 +174,6 @@ int main ( int argc, char **argv )
     //
     
     std::vector< std::vector<double> > alpha(dataSize);
-    alpha.reserve(500);
     // n=0
     alpha[0].resize(nClass);
     for (size_t c = 0; c < nClass; c++) {
@@ -199,7 +198,6 @@ int main ( int argc, char **argv )
     }
     
     std::vector< std::vector<double> > beta(dataSize);
-    beta.reserve(500);
     // n=N
     beta[dataSize-1].resize(nClass);
     for (size_t c = 0; c < nClass; c++) {
