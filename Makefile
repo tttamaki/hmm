@@ -15,13 +15,16 @@ else
   OPTIONS+= -O3 -DNDEBUG
 endif
 
-all:  hmmLabeling
+all:  hmmLabeling hmmMarginals
 
 
 hmmLabeling: hmmLabeling.cxx readCSV.cxx
 	g++ -o hmmLabeling hmmLabeling.cxx readCSV.cxx \
-	$(OPTIONS) \
-    -I../gnuplot-cpp/example2 -I../gnuplot-cpp -I../dsvfilter/trunk/
+	$(OPTIONS)
+
+hmmMarginals: hmmMarginals.cxx readCSV.cxx
+	g++ -o hmmMarginals hmmMarginals.cxx readCSV.cxx \
+	$(OPTIONS)
 
 clean:
-	rm -f hmmLabeling
+	rm -f hmmLabeling hmmMarginals
