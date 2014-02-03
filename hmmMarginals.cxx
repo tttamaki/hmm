@@ -115,7 +115,7 @@ int main ( int argc, char **argv )
     //
     typedef opengm::SimpleDiscreteSpace<size_t, size_t> Space;
     typedef opengm::GraphicalModel<double,
-                                   opengm::Adder,
+                                   opengm::Multiplier,
                                    OPENGM_TYPELIST_2(opengm::ExplicitFunction<double>,
                                                      opengm::PottsFunction<double>  ),
                                    Space> Model;
@@ -127,7 +127,7 @@ int main ( int argc, char **argv )
     
     
     //
-    // construct gm
+    // construct gm of HMM
     //
     {
         // singleton
@@ -137,18 +137,20 @@ int main ( int argc, char **argv )
             // function
             opengm::ExplicitFunction<double> f1(shape, shape + 1);
             
-            for (int c = 0; c < nClass; c++)
-                f1(c) = -std::log(data[n][c]);
+            for (size_t c = 0; c < nClass; c++)
+                f1(c) = data[n][c];
             
             // factor per function
             typename Model::FunctionIdentifier fid1 = gm.addFunction(f1);
             size_t variableIndices1[] = {n};
             gm.addFactor(fid1, variableIndices1, variableIndices1 + 1);
         }
+        // now gm[0] to gm[dataSize-1] are singleton factors
+        
         
         // pairwise
-        double same = -std::log(Opt.p); // p: parameter
-        double diff = -std::log((1.0-Opt.p) / 2.0);
+        double same = Opt.p; // p: parameter
+        double diff = (1.0-Opt.p) / (nClass-1); //2.0;
         
         opengm::PottsFunction<double> f2(nClass, nClass,
                                          same, // same labels
@@ -160,9 +162,92 @@ int main ( int argc, char **argv )
             size_t variableIndices2[] = {n, n+1};
             gm.addFactor(fid2, variableIndices2, variableIndices2 + 2);
         }
-        
-
+        // now gm[dataSize] to gm[2*dataSize-2] are pairwize factors
     }
+    //
+    //
+    //
+    
+
+    //
+    // forward-backward algorithm implementaiton
+    //
+    
+    std::vector< std::vector<double> > alpha(dataSize);
+    alpha.reserve(500);
+    // n=0
+    alpha[0].resize(nClass);
+    for (size_t c = 0; c < nClass; c++) {
+        size_t val[] = {c};
+        alpha[0][c] = gm[0](val) / nClass;
+    }
+    // n>=1
+    for (size_t n = 1; n < dataSize; n++) {
+        alpha[n].resize(nClass);
+        std::vector<double> sum(dataSize, 0.0);
+        
+        for (size_t i = 0; i < nClass; i++)
+            for (size_t c = 0; c < nClass; c++) {
+                size_t val[] = {i,c};
+                sum[i] += alpha[n-1][c] * gm[dataSize+n-1](val);
+            }
+        
+        for (size_t c = 0; c < nClass; c++) {
+            size_t val[] = {c};
+            alpha[n][c] = gm[n](val) * sum[c];
+        }
+    }
+    
+    std::vector< std::vector<double> > beta(dataSize);
+    beta.reserve(500);
+    // n=N
+    beta[dataSize-1].resize(nClass);
+    for (size_t c = 0; c < nClass; c++) {
+        beta[dataSize-1][c] = 1.0;
+    }
+    // n<N
+    for (int n = dataSize-2; n >= 0; n--) {
+        beta[n].resize(nClass);
+        for (size_t i = 0; i < nClass; i++) {
+            beta[n][i] = 0;
+            for (size_t c = 0; c < nClass; c++) {
+                size_t val1[] = {c};
+                size_t val2[] = {i,c};
+                beta[n][i] += beta[n+1][c] * gm[n+1](val1) * gm[dataSize+n](val2);
+            }
+        }
+    }
+
+    double partitionZ = 0; // p(X)
+    for (size_t c = 0; c < nClass; c++) {
+        partitionZ += alpha[dataSize-1][c];
+    }
+
+    
+    // print alpha(z_n)
+    std::cout << "alpha(z_n)" << std::endl;
+    for(size_t n = 0; n < dataSize; n++) {
+        double sum = 0;
+        for (size_t c = 0; c < nClass; c++) {
+            sum += alpha[n][c];
+        }
+        for (size_t c = 0; c < nClass; c++) {
+            std::cout << alpha[n][c]/sum << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    
+    // print p(z_n|X)
+    std::cout << "p(z_n|X)" << std::endl;
+    for(size_t n = 0; n < dataSize; n++) {
+        for (size_t c = 0; c < nClass; c++) {
+            std::cout << alpha[n][c] * beta[n][c] / partitionZ << " ";
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    
     //
     //
     //
@@ -172,8 +257,8 @@ int main ( int argc, char **argv )
     //
     // infer
     //
-    typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Minimizer> UpdateRules;
-    typedef opengm::MessagePassing<Model, opengm::Minimizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
+    typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Maximizer> UpdateRules;
+    typedef opengm::MessagePassing<Model, opengm::Maximizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
     const size_t maxNumberOfIterations = 40;
     const double convergenceBound = 1e-7;
     const double damping = 0.5;
@@ -184,18 +269,20 @@ int main ( int argc, char **argv )
     
     std::vector<size_t> labeling(dataSize);
     bp.arg(labeling);
+
     
-    
+    // print
+    std::cout << "openGM margnial" << std::endl;
     typedef Model::IndependentFactorType IndependentFactor;
     for(size_t n = 0; n < dataSize; n++) {
         IndependentFactor ift;
         bp.marginal(n, ift);
         double sum = 0;
         for (size_t c = 0; c < nClass; c++) {
-            sum += std::exp(-ift(c));
+            sum += ift(c);
         }
         for (size_t c = 0; c < nClass; c++) {
-            std::cout << std::exp(-ift(c))/sum << " ";
+            std::cout << ift(c)/sum << " ";
         }
         std::cout << std::endl;
     }
