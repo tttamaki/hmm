@@ -23,7 +23,6 @@
 
 
 
-#include "dataplot.h" // gnuplot class
 
 
 #include "readCSV.h"

@@ -20,10 +20,9 @@ files=[
 "data/B_NBI11-10161.csv",
 "data/B_NBI11-10179.csv",
 "data/B_NBI11-10201B.csv",
-"data/C_NBI11_10244 .csv",
+"data/C_NBI11_10244.csv",
 "data/C_NBI11_IIa+IIc_1.csv",
-"data/C_NBI11_IIa+IIc_2.csv",
-"data/C_NBI11_10244.csv"]
+"data/C_NBI11_IIa+IIc_2.csv"]
 
 
 prange = [x / 10. for x in range(1,10,1)]
