@@ -115,7 +115,7 @@ int main ( int argc, char **argv )
     //
     typedef opengm::SimpleDiscreteSpace<size_t, size_t> Space;
     typedef opengm::GraphicalModel<double,
-                                   opengm::Multiplier,
+                                   opengm::Adder,
                                    OPENGM_TYPELIST_2(opengm::ExplicitFunction<double>,
                                                      opengm::PottsFunction<double>  ),
                                    Space> Model;
@@ -138,7 +138,7 @@ int main ( int argc, char **argv )
             opengm::ExplicitFunction<double> f1(shape, shape + 1);
             
             for (int c = 0; c < nClass; c++)
-                f1(c) = data[n][c];
+                f1(c) = -std::log(data[n][c]);
             
             // factor per function
             typename Model::FunctionIdentifier fid1 = gm.addFunction(f1);
@@ -147,8 +147,8 @@ int main ( int argc, char **argv )
         }
         
         // pairwise
-        double same = Opt.p; // p: parameter
-        double diff = (1.0-Opt.p) / 2.0;
+        double same = -std::log(Opt.p); // p: parameter
+        double diff = -std::log((1.0-Opt.p) / 2.0);
         
         opengm::PottsFunction<double> f2(nClass, nClass,
                                          same, // same labels
@@ -172,8 +172,8 @@ int main ( int argc, char **argv )
     //
     // infer
     //
-    typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Maximizer> UpdateRules;
-    typedef opengm::MessagePassing<Model, opengm::Maximizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
+    typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Minimizer> UpdateRules;
+    typedef opengm::MessagePassing<Model, opengm::Minimizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
     const size_t maxNumberOfIterations = 40;
     const double convergenceBound = 1e-7;
     const double damping = 0.5;
@@ -192,21 +192,13 @@ int main ( int argc, char **argv )
         bp.marginal(n, ift);
         double sum = 0;
         for (size_t c = 0; c < nClass; c++) {
-            //std::cout << ift(c) << " ";
-            sum += ift(c);
+            sum += std::exp(-ift(c));
         }
-        std::cout << labeling[n];
-        std::cout << " ";
         for (size_t c = 0; c < nClass; c++) {
-            std::cout << ift(c)/sum << " ";
+            std::cout << std::exp(-ift(c))/sum << " ";
         }
-        //std::cout << " | ";
-        //for (size_t c = 0; c < nClass; c++)
-        //std::cout << data[n][c] << " ";
-
         std::cout << std::endl;
     }
-    
     //
     //
     //
