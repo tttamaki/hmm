@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage{graphicx}
+\usepackage{grffile}
+
+
+\begin{document}
+
+\def\w{.6\linewidth}
+
+
+\newcount\K
+\def\putfigure#1{%
+ \begin{center}
+  \K=0 \loop\ifnum\K<9 \advance\K by1 % for K=1 to9 
+  \includegraphics[width=\w]{#1.0.\number\K.pdf}\\ % exec this line
+  \repeat % end for
+  \end{center}
+  \newpage}
+
+
+
+\putfigure{A_NBI11-10153A.csv}
+\putfigure{A_NBI11-10153A.csv}
+\putfigure{A_NBI11-10200A.csv}
+\putfigure{A_NBI11-10200B.csv}
+\putfigure{A_NBI11-10230.csv}
+\putfigure{B_NBI11-10153B.csv}
+\putfigure{B_NBI11-10155.csv}
+\putfigure{B_NBI11-10161.csv}
+\putfigure{B_NBI11-10179.csv}
+\putfigure{B_NBI11-10201B.csv}
+\putfigure{C_NBI11_10244.csv}
+\putfigure{C_NBI11_IIa+IIc_1.csv}
+\putfigure{C_NBI11_IIa+IIc_2.csv}
+
+ 
+
+ 
+
+
+\end{document}
