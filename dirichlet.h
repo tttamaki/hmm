@@ -20,8 +20,7 @@ class randomDistribution {
 public:
     randomDistribution(){
         gsl_rng_env_setup();
-        rng_type = gsl_rng_default;
-        rng = gsl_rng_alloc (rng_type);
+        rng = gsl_rng_alloc (gsl_rng_default);
     };
     ~randomDistribution(){
         gsl_rng_free(rng);
@@ -42,22 +41,50 @@ public:
     dirichlet(): alpha_(std::vector<VALUETYPE>(0)){};
     ~dirichlet(){};
     VALUETYPE pdf(const std::vector<VALUETYPE> &theta){
-        gsl_ran_dirichlet_pdf(K(), alpha_, theta);
+        return gsl_ran_dirichlet_pdf(K(), alpha_.data(), theta.data());
     };
     VALUETYPE lnpdf(const std::vector<VALUETYPE> &theta){
-        gsl_ran_dirichlet_lnpdf(K(), alpha_, theta);
+        return gsl_ran_dirichlet_lnpdf(K(), alpha_.data(), theta.data());
     };
     void sampling(std::vector<VALUETYPE> &theta) const {
+        theta.resize(K());
         gsl_ran_dirichlet(this->rng, K(), alpha_.data(), theta.data());
     };
     
     void setAlpha(const std::vector<VALUETYPE> &alpha){
         alpha_ = alpha;
     };
-    size_t K(){ alpha_.size();};
+    size_t K() const { return alpha_.size();};
 
 protected:
     std::vector<VALUETYPE> alpha_;
 };
+
+
+
+template <class VALUETYPE>
+class discrete : public randomDistribution<VALUETYPE> {
+    gsl_ran_discrete_t *disc;
+    
+public:
+    discrete(){};
+    ~discrete(){};
+    void setProb(const std::vector<VALUETYPE> &probability){
+        disc = gsl_ran_discrete_preproc(probability.size(), probability.data());
+    };
+    VALUETYPE sampling(){
+        return gsl_ran_discrete(this->rng, disc);
+    };
+};
+
+
+
+
+
+
+
+
+
+
 
 #endif /* defined(__hmm__dirichlet__) */
