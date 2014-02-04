@@ -13,6 +13,7 @@
 #include <cmath>
 #include <numeric>
 #include <iterator>
+#include <fstream>
 
 #include <opengm/graphicalmodel/graphicalmodel.hxx>
 #include <opengm/graphicalmodel/space/simplediscretespace.hxx>
@@ -37,6 +38,11 @@ struct options {
     std::string filename;
     char del;
     double p;
+    
+    std::string outfile_alpha_z_n;
+    std::string outfile_p_z_n_X;
+    std::string outfile_marginal;
+    std::string outfile_labels;
 };
 
 
@@ -51,6 +57,11 @@ options parseOptions(int argc, char* argv[]) {
     ("help", "This help message.")
     ("file", po::value<std::string>(), "data filename (csv)")
     ("p", po::value<double>()->default_value(0.9), "parameter p: default 0.9")
+  
+    ("azn", po::value<std::string>()->default_value(""), "output filename for alpha(z_n)")
+    ("pznx", po::value<std::string>()->default_value(""), "output filename for p(z_n|X)")
+    ("marginal", po::value<std::string>()->default_value(""), "output filename for marginal by OpenGM")
+    ("label", po::value<std::string>()->default_value(""), "output filename for labeling result")
     ;
     
     po::variables_map vm;
@@ -74,6 +85,16 @@ options parseOptions(int argc, char* argv[]) {
     if (vm.count("p"))
         Opt.p = vm["p"].as<double>();
 
+    
+    if (vm.count("azn"))
+        Opt.outfile_alpha_z_n = vm["azn"].as<std::string>();
+    if (vm.count("pznx"))
+        Opt.outfile_p_z_n_X   = vm["pznx"].as<std::string>();
+    if (vm.count("marginal"))
+        Opt.outfile_marginal  = vm["marginal"].as<std::string>();
+    if (vm.count("label"))
+        Opt.outfile_labels  = vm["label"].as<std::string>();
+    
     
     return Opt;
 }
@@ -134,9 +155,10 @@ int main ( int argc, char **argv )
         const size_t shape[] = {nClass};
 
         for (size_t n = 0; n < dataSize; n++) {
-            // function
+            // function per node
             opengm::ExplicitFunction<double> f1(shape, shape + 1);
-            
+            assert(data[n].size() == nClass);
+
             for (size_t c = 0; c < nClass; c++)
                 f1(c) = data[n][c];
             
@@ -153,10 +175,9 @@ int main ( int argc, char **argv )
         double diff = (1.0-Opt.p) / (nClass-1); //2.0;
         
         opengm::PottsFunction<double> f2(nClass, nClass,
-                                         same, // same labels
-                                         diff); // different labels
+                                         same,  // cost for same labels
+                                         diff); // cost for different labels
         typename Model::FunctionIdentifier fid2 = gm.addFunction(f2);
-
 
         for (size_t n = 0; n < dataSize-1; n++) {
             size_t variableIndices2[] = {n, n+1};
@@ -221,31 +242,36 @@ int main ( int argc, char **argv )
         partitionZ += alpha[dataSize-1][c];
     }
 
+
+
     
     // print alpha(z_n)
-    std::cout << "alpha(z_n)" << std::endl;
-    for(size_t n = 0; n < dataSize; n++) {
-        double sum = 0;
-        for (size_t c = 0; c < nClass; c++) {
-            sum += alpha[n][c];
+    if (! Opt.outfile_alpha_z_n.empty() ) {
+        std::ofstream ofs(Opt.outfile_alpha_z_n);
+        for(size_t n = 0; n < dataSize; n++) {
+            double sum = 0;
+            for (size_t c = 0; c < nClass; c++)
+                sum += alpha[n][c];
+            
+            for (size_t c = 0; c < nClass; c++)
+                ofs << alpha[n][c]/sum << (c < nClass-1 ? "," : "");
+            
+            ofs << std::endl;
         }
-        for (size_t c = 0; c < nClass; c++) {
-            std::cout << alpha[n][c]/sum << " ";
-        }
-        std::cout << std::endl;
+        ofs.close();
     }
-    std::cout << std::endl;
     
     // print p(z_n|X)
-    std::cout << "p(z_n|X)" << std::endl;
-    for(size_t n = 0; n < dataSize; n++) {
-        for (size_t c = 0; c < nClass; c++) {
-            std::cout << alpha[n][c] * beta[n][c] / partitionZ << " ";
+    if (! Opt.outfile_p_z_n_X.empty() ) {
+        std::ofstream ofs(Opt.outfile_p_z_n_X);
+        for(size_t n = 0; n < dataSize; n++) {
+            for (size_t c = 0; c < nClass; c++)
+                ofs << alpha[n][c] * beta[n][c] / partitionZ << (c < nClass-1 ? "," : "");
+            
+            ofs << std::endl;
         }
-        std::cout << std::endl;
+        ofs.close();
     }
-    std::cout << std::endl;
-    
     //
     //
     //
@@ -257,50 +283,52 @@ int main ( int argc, char **argv )
     //
     typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Maximizer> UpdateRules;
     typedef opengm::MessagePassing<Model, opengm::Maximizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
-    const size_t maxNumberOfIterations = 40;
-    const double convergenceBound = 1e-7;
-    const double damping = 0.5;
-    BeliefPropagation::Parameter parameter(maxNumberOfIterations, convergenceBound, damping);
-    parameter.useNormalization_ = false;
-    BeliefPropagation bp(gm, parameter);
+    BeliefPropagation bp(gm);
     bp.infer();
     
     std::vector<size_t> labeling(dataSize);
     bp.arg(labeling);
-
+    //
+    //
+    //
     
-    // print
-    std::cout << "openGM margnial" << std::endl;
-    typedef Model::IndependentFactorType IndependentFactor;
-    for(size_t n = 0; n < dataSize; n++) {
-        IndependentFactor ift;
-        bp.marginal(n, ift);
-        double sum = 0;
-        for (size_t c = 0; c < nClass; c++) {
-            sum += ift(c);
-        }
-        for (size_t c = 0; c < nClass; c++) {
-            std::cout << ift(c)/sum << " ";
-        }
-        std::cout << std::endl;
+    //
+    // output to cout
+    //
+    if (! Opt.outfile_labels.empty() ) {
+        std::ofstream ofs(Opt.outfile_labels);
+        std::copy(labeling.begin(), labeling.end(),
+                  std::ostream_iterator<float>(ofs, "\n"));
+        ofs.close();
     }
     //
     //
     //
     
     
-    
+    // print
+    // std::cout << "openGM margnial" << std::endl;
+    if (! Opt.outfile_marginal.empty() ) {
+        std::ofstream ofs(Opt.outfile_marginal);
+        
+        typedef Model::IndependentFactorType IndependentFactor;
+        for(size_t n = 0; n < dataSize; n++) {
+            IndependentFactor ift;
+            bp.marginal(n, ift);
+            double sum = 0;
+            for (size_t c = 0; c < nClass; c++)
+                sum += ift(c);
+            
+            for (size_t c = 0; c < nClass; c++)
+                ofs << ift(c)/sum << (c < nClass-1 ? "," : "");
+            
+            ofs << std::endl;
+        }
+        ofs.close();
+    }
     //
-    // output to cout
-    //
-//    std::copy(labeling.begin(), labeling.end(),
-//              std::ostream_iterator<float>(std::cout, "\n"));
     //
     //
-    //
-    
-    
-    
     
     
     

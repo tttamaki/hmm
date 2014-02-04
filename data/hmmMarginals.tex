@@ -1,0 +1,45 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{grffile} % for filenames such as foo.bar.pdf (instead of foo.pdf)
+\usepackage{mediabb} % for computing bounding box of pdf files
+
+\begin{document}
+
+\def\w{.24\linewidth}
+
+
+\newcount\K
+\def\putfigure#1{%
+ \begin{center}
+  \K=0 \loop\ifnum\K<9 \advance\K by1 % for K=1 to9 
+  % exec these lines
+  \includegraphics[width=\w]{#1.pdf}\hfil
+  \includegraphics[width=\w]{#1.marginal.0.\number\K.pdf}\hfil
+  \includegraphics[width=\w]{#1.azn.0.\number\K.pdf}\hfil
+  \includegraphics[width=\w]{#1.pznx.0.\number\K.pdf}\\ 
+  \repeat % end for
+  \end{center}
+  \newpage}
+
+
+
+\putfigure{A_NBI11-10153A}
+\putfigure{A_NBI11-10200A}
+\putfigure{A_NBI11-10200B}
+\putfigure{A_NBI11-10230}
+\putfigure{B_NBI11-10153B}
+\putfigure{B_NBI11-10155}
+\putfigure{B_NBI11-10161}
+\putfigure{B_NBI11-10179}
+\putfigure{B_NBI11-10201B}
+\putfigure{C_NBI11_10244}
+\putfigure{C_NBI11_IIa+IIc_1}
+\putfigure{C_NBI11_IIa+IIc_2}
+
+ 
+
+ 
+
+
+\end{document}
