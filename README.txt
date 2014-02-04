@@ -17,8 +17,26 @@ Usage:
 
 Requirements:
 - OpenGM
-- R
 - python
 - R
 - (pdflatex)
 
+
+* hmmMarginals: Computing marginals of sequence labeling with HMM
+
+Usage:
+- put csvfiles
+- modify "csvfiles" variable in hmmMarginalsAll.py for the csvfiles
+- run "python hmmMarginalsAll.py"
+- you'll get a bunch of *.csv and *.pdf as results
+-- *.azn.*:   marginals at variable z_n given data x_1...n; p(z_n|X_1...n)
+              = normalized alpha message of forward-backward algorithm
+-- *.pznx.*:  marginals at variable z_n given all data x_1...N; p(z_n|X_1...N)
+              = gamma message of forward-backward algorithm
+-- *.marginals.*: marginal of variable n computed by OpenGM
+- compile hmmMarginals.tex to put pdfs of a csvfile in a singel page
+
+Requirements:
+- OpenGM
+- python
+- (pdflatex)
