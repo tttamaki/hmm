@@ -21,6 +21,8 @@
 void
 readFile(const std::string &filename,
          std::vector< std::vector< float > > &data);
-
+void
+readFile(const std::string &filename,
+         std::vector< std::vector< double > > &data);
 
 #endif /* defined(__hmm__readCSV__) */
