@@ -28,7 +28,7 @@
 
 #include "readCSV.h"
 
-#include "dirichlet.h"
+#include "dirichletParticleFilter.h"
 #include "dataplot.h" // gnuplot class
 
 
@@ -37,13 +37,12 @@
 
 struct options {
     std::string filename;
-    char del;
-    double p;
+
+    double theta1;
+    double theta2;
+    size_t nParticles;
     
-    std::string outfile_alpha_z_n;
-    std::string outfile_p_z_n_X;
-    std::string outfile_marginal;
-    std::string outfile_labels;
+    std::string outfile;
 };
 
 
@@ -57,12 +56,13 @@ options parseOptions(int argc, char* argv[]) {
     desc.add_options()
     ("help", "This help message.")
     ("file", po::value<std::string>(), "data filename (csv)")
-    ("p", po::value<double>()->default_value(0.9), "parameter p: default 0.9")
+
+    ("p1", po::value<double>()->default_value(100.0), "parameter theta1: default 100")
+    ("p2", po::value<double>()->default_value(5.0), "parameter theta2: default 5")
   
-    ("azn", po::value<std::string>()->default_value(""), "output filename for alpha(z_n)")
-    ("pznx", po::value<std::string>()->default_value(""), "output filename for p(z_n|X)")
-    ("marginal", po::value<std::string>()->default_value(""), "output filename for marginal by OpenGM")
-    ("label", po::value<std::string>()->default_value(""), "output filename for labeling result")
+    ("out", po::value<std::string>()->default_value(""), "output filename")
+    
+    ("npar", po::value<size_t>()->default_value(100), "number of particles: default 100")
     ;
     
     po::variables_map vm;
@@ -83,18 +83,16 @@ options parseOptions(int argc, char* argv[]) {
         exit(1);
     }
     
-    if (vm.count("p"))
-        Opt.p = vm["p"].as<double>();
+    if (vm.count("p1"))
+        Opt.theta1 = vm["p1"].as<double>();
+    if (vm.count("p2"))
+        Opt.theta2 = vm["p2"].as<double>();
+    if (vm.count("npar"))
+        Opt.nParticles = vm["npar"].as<size_t>();
 
     
-    if (vm.count("azn"))
-        Opt.outfile_alpha_z_n = vm["azn"].as<std::string>();
-    if (vm.count("pznx"))
-        Opt.outfile_p_z_n_X   = vm["pznx"].as<std::string>();
-    if (vm.count("marginal"))
-        Opt.outfile_marginal  = vm["marginal"].as<std::string>();
-    if (vm.count("label"))
-        Opt.outfile_labels  = vm["label"].as<std::string>();
+    if (vm.count("out"))
+        Opt.outfile = vm["out"].as<std::string>();
     
     
     return Opt;
@@ -114,191 +112,48 @@ options parseOptions(int argc, char* argv[]) {
 int main ( int argc, char **argv )
 {
     
-    {
-        std::vector<double> alpha(3);
-        alpha[0] = 2;
-        alpha[1] = 2;
-        alpha[2] = 6;
-        dirichlet<double> d;
-        d.setAlpha(alpha);
-
-        std::vector<double> x,y;
-        Gnuplot g1("dots");
-        for (int i = 0; i < 10000; i++) {
-            d.sampling(alpha);
-            x.push_back(alpha[0]);
-            y.push_back(alpha[1]);
-        }
-        g1.reset_plot();
-        g1.plot_xy(x,y);
-
-        
-        exit(0);
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
     options Opt = parseOptions(argc, argv);
 
     //
     // read data from file
     //
-    std::vector< std::vector< float > > data;
+    std::vector< std::vector< double > > data;
     data.reserve(1000);
     
     readFile(Opt.filename, data);
     
     data.shrink_to_fit();
     size_t dataSize = data.size();
-    size_t nClass = data[0].size();
+    //size_t nClass = data[0].size();
     //
     //
     //
    
     
     //
-    // set gm
+    // particle filter
     //
-    typedef opengm::SimpleDiscreteSpace<size_t, size_t> Space;
-    typedef opengm::GraphicalModel<double,
-                                   opengm::Multiplier,
-                                   OPENGM_TYPELIST_2(opengm::ExplicitFunction<double>,
-                                                     opengm::PottsFunction<double>  ),
-                                   Space> Model;
-    Space space(dataSize, nClass);
-    Model gm(space);
+    dirichletParticleFilter<double> dpf(Opt.nParticles);
+    dpf.theta1 = Opt.theta1;
+    dpf.theta2 = Opt.theta2;
+    dpf.init(data[0]);
     //
     //
     //
     
     
     //
-    // construct gm of HMM
+    // filtering
     //
-    {
-        // singleton
-        const size_t shape[] = {nClass};
-
+    if (! Opt.outfile.empty() ) {
+        std::ofstream ofs(Opt.outfile);
+        std::vector< double > map;
         for (size_t n = 0; n < dataSize; n++) {
-            // function per node
-            opengm::ExplicitFunction<double> f1(shape, shape + 1);
-            assert(data[n].size() == nClass);
+            dpf.update(data[n]);
+            map = dpf.MAP();
 
-            for (size_t c = 0; c < nClass; c++)
-                f1(c) = data[n][c];
-            
-            // factor per function
-            typename Model::FunctionIdentifier fid1 = gm.addFunction(f1);
-            size_t variableIndices1[] = {n};
-            gm.addFactor(fid1, variableIndices1, variableIndices1 + 1);
-        }
-        // now gm[0] to gm[dataSize-1] are singleton factors
-        
-        
-        // pairwise
-        double same = Opt.p; // p: parameter
-        double diff = (1.0-Opt.p) / (nClass-1); //2.0;
-        
-        opengm::PottsFunction<double> f2(nClass, nClass,
-                                         same,  // cost for same labels
-                                         diff); // cost for different labels
-        typename Model::FunctionIdentifier fid2 = gm.addFunction(f2);
-
-        for (size_t n = 0; n < dataSize-1; n++) {
-            size_t variableIndices2[] = {n, n+1};
-            gm.addFactor(fid2, variableIndices2, variableIndices2 + 2);
-        }
-        // now gm[dataSize] to gm[2*dataSize-2] are pairwize factors
-    }
-    //
-    //
-    //
-    
-
-    //
-    // forward-backward algorithm implementaiton
-    //
-    
-    std::vector< std::vector<double> > alpha(dataSize);
-    // n=0
-    alpha[0].resize(nClass);
-    for (size_t c = 0; c < nClass; c++) {
-        size_t val[] = {c};
-        alpha[0][c] = gm[0](val) / nClass;
-    }
-    // n>=1
-    for (size_t n = 1; n < dataSize; n++) {
-        alpha[n].resize(nClass);
-        std::vector<double> sum(dataSize, 0.0);
-        
-        for (size_t i = 0; i < nClass; i++)
-            for (size_t c = 0; c < nClass; c++) {
-                size_t val[] = {i,c};
-                sum[i] += alpha[n-1][c] * gm[dataSize+n-1](val);
-            }
-        
-        for (size_t c = 0; c < nClass; c++) {
-            size_t val[] = {c};
-            alpha[n][c] = gm[n](val) * sum[c];
-        }
-    }
-    
-    std::vector< std::vector<double> > beta(dataSize);
-    // n=N
-    beta[dataSize-1].resize(nClass);
-    for (size_t c = 0; c < nClass; c++) {
-        beta[dataSize-1][c] = 1.0;
-    }
-    // n<N
-    for (int n = dataSize-2; n >= 0; n--) {
-        beta[n].resize(nClass);
-        for (size_t i = 0; i < nClass; i++) {
-            beta[n][i] = 0;
-            for (size_t c = 0; c < nClass; c++) {
-                size_t val1[] = {c};
-                size_t val2[] = {i,c};
-                beta[n][i] += beta[n+1][c] * gm[n+1](val1) * gm[dataSize+n](val2);
-            }
-        }
-    }
-
-    double partitionZ = 0; // p(X)
-    for (size_t c = 0; c < nClass; c++) {
-        partitionZ += alpha[dataSize-1][c];
-    }
-
-
-
-    
-    // print alpha(z_n)
-    if (! Opt.outfile_alpha_z_n.empty() ) {
-        std::ofstream ofs(Opt.outfile_alpha_z_n);
-        for(size_t n = 0; n < dataSize; n++) {
-            double sum = 0;
-            for (size_t c = 0; c < nClass; c++)
-                sum += alpha[n][c];
-            
-            for (size_t c = 0; c < nClass; c++)
-                ofs << alpha[n][c]/sum << (c < nClass-1 ? "," : "");
-            
-            ofs << std::endl;
-        }
-        ofs.close();
-    }
-    
-    // print p(z_n|X)
-    if (! Opt.outfile_p_z_n_X.empty() ) {
-        std::ofstream ofs(Opt.outfile_p_z_n_X);
-        for(size_t n = 0; n < dataSize; n++) {
-            for (size_t c = 0; c < nClass; c++)
-                ofs << alpha[n][c] * beta[n][c] / partitionZ << (c < nClass-1 ? "," : "");
-            
+            std::copy(map.begin(), map.end(),
+                      std::ostream_iterator<double>(ofs, ","));
             ofs << std::endl;
         }
         ofs.close();
@@ -306,64 +161,6 @@ int main ( int argc, char **argv )
     //
     //
     //
-    
-    
-    
-    //
-    // infer
-    //
-    typedef opengm::BeliefPropagationUpdateRules<Model, opengm::Maximizer> UpdateRules;
-    typedef opengm::MessagePassing<Model, opengm::Maximizer, UpdateRules, opengm::MaxDistance> BeliefPropagation;
-    BeliefPropagation bp(gm);
-    bp.infer();
-    
-    std::vector<size_t> labeling(dataSize);
-    bp.arg(labeling);
-    //
-    //
-    //
-    
-    //
-    // output to cout
-    //
-    if (! Opt.outfile_labels.empty() ) {
-        std::ofstream ofs(Opt.outfile_labels);
-        std::copy(labeling.begin(), labeling.end(),
-                  std::ostream_iterator<float>(ofs, "\n"));
-        ofs.close();
-    }
-    //
-    //
-    //
-    
-    
-    // print
-    // std::cout << "openGM margnial" << std::endl;
-    if (! Opt.outfile_marginal.empty() ) {
-        std::ofstream ofs(Opt.outfile_marginal);
-        
-        typedef Model::IndependentFactorType IndependentFactor;
-        for(size_t n = 0; n < dataSize; n++) {
-            IndependentFactor ift;
-            bp.marginal(n, ift);
-            double sum = 0;
-            for (size_t c = 0; c < nClass; c++)
-                sum += ift(c);
-            
-            for (size_t c = 0; c < nClass; c++)
-                ofs << ift(c)/sum << (c < nClass-1 ? "," : "");
-            
-            ofs << std::endl;
-        }
-        ofs.close();
-    }
-    //
-    //
-    //
-    
-    
-    
-    
     
     return 0;
 }

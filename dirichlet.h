@@ -10,6 +10,7 @@
 #define __hmm__dirichlet__
 
 #include <vector>
+#include <time.h>
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 
@@ -21,16 +22,16 @@ public:
     randomDistribution(){
         gsl_rng_env_setup();
         rng = gsl_rng_alloc (gsl_rng_default);
+        gsl_rng_set(rng, (unsigned long int)time(NULL));
     };
     ~randomDistribution(){
         gsl_rng_free(rng);
     };
-    VALUETYPE pdf(const std::vector<VALUETYPE> &theta){};
-    VALUETYPE lnpdf(const std::vector<VALUETYPE> &theta){};
+    VALUETYPE pdf(const std::vector<VALUETYPE> &x){};
+    VALUETYPE lnpdf(const std::vector<VALUETYPE> &x){};
     void sampling(std::vector<VALUETYPE> &theta) const {};
     
 protected:
-    gsl_rng_type *rng_type;
     gsl_rng *rng;
 };
 
@@ -40,15 +41,15 @@ class dirichlet : public randomDistribution<VALUETYPE> {
 public:
     dirichlet(): alpha_(std::vector<VALUETYPE>(0)){};
     ~dirichlet(){};
-    VALUETYPE pdf(const std::vector<VALUETYPE> &theta){
-        return gsl_ran_dirichlet_pdf(K(), alpha_.data(), theta.data());
+    VALUETYPE pdf(const std::vector<VALUETYPE> &x){
+        return gsl_ran_dirichlet_pdf(K(), alpha_.data(), x.data());
     };
-    VALUETYPE lnpdf(const std::vector<VALUETYPE> &theta){
-        return gsl_ran_dirichlet_lnpdf(K(), alpha_.data(), theta.data());
+    VALUETYPE lnpdf(const std::vector<VALUETYPE> &x){
+        return gsl_ran_dirichlet_lnpdf(K(), alpha_.data(), x.data());
     };
-    void sampling(std::vector<VALUETYPE> &theta) const {
-        theta.resize(K());
-        gsl_ran_dirichlet(this->rng, K(), alpha_.data(), theta.data());
+    void sampling(std::vector<VALUETYPE> &x) const {
+        x.resize(K());
+        gsl_ran_dirichlet(this->rng, K(), alpha_.data(), x.data());
     };
     
     void setAlpha(const std::vector<VALUETYPE> &alpha){

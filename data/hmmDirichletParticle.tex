@@ -1,0 +1,43 @@
+\documentclass{article}
+
+\usepackage{graphicx}
+\usepackage{grffile} % for filenames such as foo.bar.pdf (instead of foo.pdf)
+\usepackage{mediabb} % for computing bounding box of pdf files
+
+\begin{document}
+
+\def\w{\linewidth}
+
+
+\newcount\K
+\def\putfigure#1{%
+ \begin{center}
+  \includegraphics[width=\w]{#1.pdf}\\
+  \includegraphics[width=\w]{#1.dpf.100.1.pdf}\\
+  \includegraphics[width=\w]{#1.dpf.100.5.pdf}\\
+  \includegraphics[width=\w]{#1.dpf.500.1.pdf}\\
+  \includegraphics[width=\w]{#1.dpf.500.5.pdf}\\
+  \end{center}
+  \newpage}
+
+
+
+\putfigure{A_NBI11-10153A}
+\putfigure{A_NBI11-10200A}
+\putfigure{A_NBI11-10200B}
+\putfigure{A_NBI11-10230}
+\putfigure{B_NBI11-10153B}
+\putfigure{B_NBI11-10155}
+\putfigure{B_NBI11-10161}
+\putfigure{B_NBI11-10179}
+\putfigure{B_NBI11-10201B}
+\putfigure{C_NBI11_10244}
+\putfigure{C_NBI11_IIa+IIc_1}
+\putfigure{C_NBI11_IIa+IIc_2}
+
+ 
+
+ 
+
+
+\end{document}
