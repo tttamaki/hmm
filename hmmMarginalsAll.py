@@ -13,7 +13,7 @@ def data2pdf(matrix, pdffilename, title, xlabel, ylabel):
     fig, ax = plt.subplots()
     fig.set_figwidth(10) # in inch
     fig.set_figheight(2) # in inch
-    fig.suptitle(title, fontsize=12)
+    #fig.suptitle(title, fontsize=12)
     
     n=len(matrix)
     xs = []
@@ -28,6 +28,7 @@ def data2pdf(matrix, pdffilename, title, xlabel, ylabel):
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.set_ylim([0,1])
 
     ax.plot(xs, y1, 'b-', label=matrix.dtype.names[0])
     ax.plot(xs, y2, 'r-', label=matrix.dtype.names[1])

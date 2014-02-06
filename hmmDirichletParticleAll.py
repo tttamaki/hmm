@@ -13,7 +13,7 @@ def data2pdf(matrix, pdffilename, title, xlabel, ylabel):
     fig, ax = plt.subplots()
     fig.set_figwidth(10) # in inch
     fig.set_figheight(2) # in inch
-    fig.suptitle(title, fontsize=12)
+    # fig.suptitle(title, fontsize=12)
     
     n=len(matrix)
     xs = []
@@ -28,6 +28,7 @@ def data2pdf(matrix, pdffilename, title, xlabel, ylabel):
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
+    ax.set_ylim([0,1])
 
     ax.plot(xs, y1, 'b-', label=matrix.dtype.names[0])
     ax.plot(xs, y2, 'r-', label=matrix.dtype.names[1])
@@ -57,8 +58,9 @@ csvfiles=[
        "data/C_NBI11_IIa+IIc_1.csv",
        "data/C_NBI11_IIa+IIc_2.csv"]
 
-p1range = [100, 500] # theta1
-p2range = [1, 5]     # theta2
+
+p1range = [10, 100, 500, 1000] # theta1
+p2range = [1, 5, 10]     # theta2
 
 
 for filename in csvfiles:
@@ -76,6 +78,7 @@ for filename in csvfiles:
             command  = "./hmmDirichletParticle --file " + filename
             command += " --p1 " + str(p1)
             command += " --p2 " + str(p2)
+            command += " --npar " + str(100)
             command += " --out " + fout + ".csv"
             
             print(command)

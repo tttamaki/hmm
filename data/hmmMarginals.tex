@@ -3,21 +3,27 @@
 \usepackage{graphicx}
 \usepackage{grffile} % for filenames such as foo.bar.pdf (instead of foo.pdf)
 \usepackage{mediabb} % for computing bounding box of pdf files
+\usepackage[strings]{underscore} % just for filenames with underscores
+
 
 \begin{document}
 
 \def\w{.24\linewidth}
 
+\def\subfig#1{
+  \parbox{\w}{\center\tiny%
+  \texttt{#1}\\% print finenames with underscores (not URLs)
+  \includegraphics[width=\linewidth]{#1}}}
 
 \newcount\K
 \def\putfigure#1{%
  \begin{center}
   \K=0 \loop\ifnum\K<9 \advance\K by1 % for K=1 to9 
   % exec these lines
-  \includegraphics[width=\w]{#1.pdf}\hfil
-  \includegraphics[width=\w]{#1.marginal.0.\number\K.pdf}\hfil
-  \includegraphics[width=\w]{#1.azn.0.\number\K.pdf}\hfil
-  \includegraphics[width=\w]{#1.pznx.0.\number\K.pdf}\\ 
+  \subfig{#1.pdf}\hfil
+  \subfig{#1.marginal.0.\number\K.pdf}\hfil
+  \subfig{#1.azn.0.\number\K.pdf}\hfil
+  \subfig{#1.pznx.0.\number\K.pdf}\\
   \repeat % end for
   \end{center}
   \newpage}

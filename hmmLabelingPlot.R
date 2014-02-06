@@ -50,7 +50,8 @@ if(sum(is.na(lab1)) != N){
     par(new=T)
 }
 if(sum(is.na(lab2)) != N){
-    barplot(lab2, col=red, yaxt="n", xlab="frame number", main=title, space=0, border=red)
+    #    barplot(lab2, col=red, yaxt="n", xlab="frame number", main=title, space=0, border=red)
+    barplot(lab2, col=red, yaxt="n", xlab="frame number", space=0, border=red)
     par(new=T)
 }
 if(sum(is.na(lab3)) != N){

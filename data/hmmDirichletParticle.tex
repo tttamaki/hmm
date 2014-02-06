@@ -3,22 +3,38 @@
 \usepackage{graphicx}
 \usepackage{grffile} % for filenames such as foo.bar.pdf (instead of foo.pdf)
 \usepackage{mediabb} % for computing bounding box of pdf files
+\usepackage[strings]{underscore} % just for filenames with underscores
+
 
 \begin{document}
 
-\def\w{\linewidth}
+\def\w{.3\linewidth}
+
+\def\subfig#1{
+  \parbox{\w}{\center\tiny%
+  \texttt{#1}\\
+  \includegraphics[width=\linewidth]{#1}}}
 
 
 \newcount\K
 \def\putfigure#1{%
- \begin{center}
-  \includegraphics[width=\w]{#1.pdf}\\
-  \includegraphics[width=\w]{#1.dpf.100.1.pdf}\\
-  \includegraphics[width=\w]{#1.dpf.100.5.pdf}\\
-  \includegraphics[width=\w]{#1.dpf.500.1.pdf}\\
-  \includegraphics[width=\w]{#1.dpf.500.5.pdf}\\
-  \end{center}
-  \newpage}
+ \begin{figure}[htb]\center
+  \subfig{#1.pdf}\\
+  \subfig{#1.dpf.10.1.pdf}\hfill
+  \subfig{#1.dpf.10.5.pdf}\hfill
+  \subfig{#1.dpf.10.10.pdf}\\
+  \subfig{#1.dpf.100.1.pdf}\hfill
+  \subfig{#1.dpf.100.5.pdf}\hfill
+  \subfig{#1.dpf.100.10.pdf}\\
+  \subfig{#1.dpf.500.1.pdf}\hfill
+  \subfig{#1.dpf.500.5.pdf}\hfill
+  \subfig{#1.dpf.500.10.pdf}\\
+  \subfig{#1.dpf.1000.1.pdf}\hfill
+  \subfig{#1.dpf.1000.5.pdf}\hfill
+  \subfig{#1.dpf.1000.10.pdf}\\
+  \end{figure}
+  %\newpage
+  }
 
 
 
