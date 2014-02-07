@@ -151,16 +151,20 @@ int main ( int argc, char **argv )
             dpf.update(data[n]);
 
             
-            ave = dpf.average();
-            std::copy(ave.begin(), ave.end(),
-                      std::ostream_iterator<double>(ofs, ","));
-            ofs << std::endl;
-
-//            dirichletEstimate<double> de(dpf.getParticles());
-//            std::vector< double > alpha = de.mean();
-//            std::copy(alpha.begin(), alpha.end(),
+//            ave = dpf.average();
+//            std::copy(ave.begin(), ave.end(),
 //                      std::ostream_iterator<double>(ofs, ","));
 //            ofs << std::endl;
+
+            dirichletEstimate<double> de(dpf.getParticles());
+            std::vector< double > alpha = de.mean();
+            std::vector< double > variance = de.variance();
+            alpha.insert(alpha.end(), variance.begin(), variance.end());
+
+            std::copy(alpha.begin(), alpha.end(),
+                      std::ostream_iterator<double>(ofs, ","));
+
+            ofs << std::endl;
             
         }
         ofs.close();

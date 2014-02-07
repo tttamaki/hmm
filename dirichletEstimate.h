@@ -13,6 +13,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <cmath>
 
 #include "ASA266/asa266.hpp"
 
@@ -22,6 +23,7 @@ class dirichletEstimate {
 
 protected:
     std::vector< VAL > alpha_;
+    std::vector< VAL > variance_;
     bool computed;
 
 public:
@@ -33,6 +35,7 @@ public:
     const std::vector< VAL > & getAlpha(){
         return alpha_;
     }
+
     
     std::vector< VAL >
     estimate(const std::vector< std::vector< VAL > > &particles)
@@ -71,8 +74,11 @@ public:
         assert(ifault == 0);
 
         alpha_.resize(k);
-        for (size_t j = 0; j < k; j++)
+        variance_.resize(k);
+        for (size_t j = 0; j < k; j++) {
             alpha_[j] = alpha[j];
+            variance_[j] = v[j+j*ix];
+        }
         
         delete [] alpha;
         delete [] x;
@@ -103,10 +109,25 @@ public:
         VAL sum = std::accumulate(alpha_.begin(), alpha_.end(), VAL(0));
         std::vector< VAL > modevec(alpha_.size());
         for (size_t j = 0; j < k; j++) {
+            assert(alpha_[j] > 1);
             modevec[j] = (alpha_[j]-1) / (sum-k);
         }
         return modevec;
     }
+    
+    std::vector< VAL >
+    variance(){
+        assert(computed == true);
+        int k = alpha_.size();
+        VAL sum = std::accumulate(alpha_.begin(), alpha_.end(), VAL(0));
+        std::vector< VAL > variancevec(alpha_.size());
+        for (size_t j = 0; j < k; j++) {
+            variancevec[j] = alpha_[j]*(sum-alpha_[j]) / (sum*sum*(sum+1));
+            variancevec[j] = sqrt(variancevec[j]); // not variance, but std.
+        }
+        return variancevec;
+    }
+    
     
 };
 
