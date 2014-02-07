@@ -8,38 +8,40 @@ import os.path
 import numpy as np
 
 
-def data2pdf(matrix, pdffilename, title, xlabel, ylabel):
-
+def data2pdf(matrix, pdffilename, title, xlabel, ylabel, names):
+    
     fig, ax = plt.subplots()
     fig.set_figwidth(10) # in inch
     fig.set_figheight(2) # in inch
     # fig.suptitle(title, fontsize=12)
-    
+
     n=len(matrix)
+    m=len(matrix[0])
+    if matrix[0][m-1] == None:
+        m = m - 1
+
     xs = np.zeros(n)
-    y1 = np.zeros(n)
-    y2 = np.zeros(n)
-    y3 = np.zeros(n)
+    y = np.zeros([n,m])
     for i in range(n):
         xs[i] = i
-        y1[i] = matrix[i][0]
-        y2[i] = matrix[i][1]
-        y3[i] = matrix[i][2]
+        for j in range(m):
+            y[i][j] = matrix[i][j]
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_ylim([0,1])
 
-    ax.plot(xs, y1, 'b-', label=matrix.dtype.names[0])
-    ax.plot(xs, y2, 'r-', label=matrix.dtype.names[1])
-    ax.plot(xs, y3, 'g-', label=matrix.dtype.names[2])
+    color = ['b-', 'r-', 'g-']
+    for j in range(3):
+        ax.plot(xs, y[:,j], color[j], label=names[j])
 
-    if len(mat[0]) > 3:
-        y1f = np.zeros(n)
-        for i in range(n):
-            y1f[i] = matrix[i][3]
-        for d in np.arange(0.5,5,.25):
-            ax.fill_between(xs, y1+y1f/d, y1-y1f/d, alpha=0.05, linewidth=0)
+
+
+    if m > 3:
+        color2 = ['blue', 'red', 'green']
+        for j in range(3):
+            for d in np.arange(0.25,5,.25):
+                ax.fill_between(xs, y[:,j]+y[:,j+3]/d, y[:,j]-y[:,j+3]/d, alpha=0.05, linewidth=0, color=color2[j])
 
     legend = ax.legend(loc='center right', frameon=False, fontsize=12) # http://matplotlib.org/api/axes_api.html?highlight=legend#matplotlib.axes.Axes.legend
 
@@ -66,8 +68,6 @@ csvfiles=[
        "data/C_NBI11_IIa+IIc_2.csv"]
 
 
-csvfiles=[
-          "data/A_NBI11-10200A.csv",]
 
           
 p1range = [10, 100, 500, 1000] # theta1
@@ -79,8 +79,8 @@ for filename in csvfiles:
     filenamebase, ext = os.path.splitext(filename)
 
     # original data
-    mat = matplotlib.mlab.csv2rec(filename, names=["A","B","C3"]) # http://matplotlib.org/api/mlab_api.html?highlight=csv2rec#matplotlib.mlab.csv2rec
-    data2pdf(mat, filenamebase + ".pdf", filenamebase, 'frame number', 'values')
+    mat = matplotlib.mlab.csv2rec(filename) # http://matplotlib.org/api/mlab_api.html?highlight=csv2rec#matplotlib.mlab.csv2rec
+    data2pdf(mat, filenamebase + ".pdf", filenamebase, 'frame number', 'values', names=["A","B","C3"])
     
     for p1 in p1range:
         for p2 in p2range:
@@ -95,5 +95,5 @@ for filename in csvfiles:
             print(command)
             os.system(command)
             
-            mat = matplotlib.mlab.csv2rec(fout + ".csv", names=["A","B","C3","Af"])
-            data2pdf(mat, fout + ".pdf", fout, 'frame number', 'values')
+            mat = matplotlib.mlab.csv2rec(fout + ".csv")
+            data2pdf(mat, fout + ".pdf", fout, 'frame number', 'values', names=["A","B","C3"])
