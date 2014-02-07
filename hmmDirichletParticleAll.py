@@ -78,7 +78,7 @@ for filename in csvfiles:
             command  = "./hmmDirichletParticle --file " + filename
             command += " --p1 " + str(p1)
             command += " --p2 " + str(p2)
-            command += " --npar " + str(100)
+            command += " --npar " + str(1000)
             command += " --out " + fout + ".csv"
             
             print(command)

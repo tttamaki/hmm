@@ -26,8 +26,9 @@ hmmMarginals: hmmMarginals.cxx readCSV.cxx
 	g++ -o hmmMarginals hmmMarginals.cxx readCSV.cxx \
 	$(OPTIONS)
     
-hmmDirichletParticle: hmmDirichletParticle.cxx readCSV.cxx dirichlet.h
+hmmDirichletParticle: hmmDirichletParticle.cxx readCSV.cxx dirichlet.h dirichletEstimate.h dirichletParticleFilter.h
 	g++ -o hmmDirichletParticle hmmDirichletParticle.cxx readCSV.cxx \
+    asa266/asa266.cpp \
 	$(OPTIONS) -lgsl -I../gnuplot-cpp/example2 -I../gnuplot-cpp
 
 clean:

@@ -31,7 +31,7 @@
 #include "dirichletParticleFilter.h"
 #include "dataplot.h" // gnuplot class
 
-
+#include "dirichletEstimate.h"
 
 #include "boost/program_options.hpp"
 
@@ -60,7 +60,7 @@ options parseOptions(int argc, char* argv[]) {
     ("p1", po::value<double>()->default_value(100.0), "parameter theta1: default 100")
     ("p2", po::value<double>()->default_value(5.0), "parameter theta2: default 5")
   
-    ("out", po::value<std::string>()->default_value(""), "output filename")
+    ("out", po::value<std::string>()->default_value(""), "output filename of particle average")
     
     ("npar", po::value<size_t>()->default_value(100), "number of particles: default 100")
     ;
@@ -97,8 +97,6 @@ options parseOptions(int argc, char* argv[]) {
     
     return Opt;
 }
-
-
 
 
 
@@ -147,14 +145,23 @@ int main ( int argc, char **argv )
     //
     if (! Opt.outfile.empty() ) {
         std::ofstream ofs(Opt.outfile);
-        std::vector< double > map;
+        std::vector< double > ave;
         for (size_t n = 0; n < dataSize; n++) {
-            dpf.update(data[n]);
-            map = dpf.MAP();
 
-            std::copy(map.begin(), map.end(),
+            dpf.update(data[n]);
+
+            
+            ave = dpf.average();
+            std::copy(ave.begin(), ave.end(),
                       std::ostream_iterator<double>(ofs, ","));
             ofs << std::endl;
+
+//            dirichletEstimate<double> de(dpf.getParticles());
+//            std::vector< double > alpha = de.mean();
+//            std::copy(alpha.begin(), alpha.end(),
+//                      std::ostream_iterator<double>(ofs, ","));
+//            ofs << std::endl;
+            
         }
         ofs.close();
     }

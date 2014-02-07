@@ -754,6 +754,7 @@ void dirichlet_estimate ( int k, int n, double x[], int ix, int init,
       cerr << "\n";
       cerr << "DIRICHLET_ESTIMATE - Fatal error!\n";
       cerr << "  Row I does not sum to 1.\n";
+        cerr << sum2 << endl;
       exit ( 1 );
     }
   }

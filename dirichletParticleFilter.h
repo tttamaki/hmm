@@ -33,7 +33,7 @@ public:
     void init(const std::vector<VALUETYPE> &init){};
     void update(const std::vector<VALUETYPE> &obserbed){};
     
-    aPARTICLE MAP() const {
+    aPARTICLE average() const {
         aPARTICLE average(particles[0].size(), VALUETYPE(0));
         
         for (size_t d = 0; d < particles[0].size(); d++) {
@@ -85,7 +85,7 @@ public:
     VALUETYPE theta2; // parameter 2 between 3 to 10
 
     void init(const std::vector<VALUETYPE> &initval){
-        assert(initval.size() == this->particles[0].size());
+        assert(this->particles[0].size() == 0); // not yet initialized
 
         PARAMETER alpha = scalarProd(initval, theta2, 1);
         d.setAlpha(alpha);

@@ -1,4 +1,5 @@
 namespace asa266 {
+using namespace std;
 
 double alngam ( double xvalue, int *ifault );
 double alnorm ( double x, bool upper );
