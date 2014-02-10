@@ -15,7 +15,7 @@ else
   OPTIONS+= -O3 -DNDEBUG
 endif
 
-all:  hmmLabeling hmmMarginals hmmDirichletParticle
+all:  hmmLabeling hmmMarginals hmmDirichletParticle hmmMarginalOnline
 
 
 hmmLabeling: hmmLabeling.cxx readCSV.cxx
@@ -26,10 +26,15 @@ hmmMarginals: hmmMarginals.cxx readCSV.cxx
 	g++ -o hmmMarginals hmmMarginals.cxx readCSV.cxx \
 	$(OPTIONS)
     
+hmmMarginalOnline: hmmMarginalOnline.cxx readCSV.cxx
+	g++ -o hmmMarginalOnline hmmMarginalOnline.cxx readCSV.cxx \
+	$(OPTIONS)
+
+    
 hmmDirichletParticle: hmmDirichletParticle.cxx readCSV.cxx dirichlet.h dirichletEstimate.h dirichletParticleFilter.h
 	g++ -o hmmDirichletParticle hmmDirichletParticle.cxx readCSV.cxx \
     asa266/asa266.cpp \
 	$(OPTIONS) -lgsl -I../gnuplot-cpp/example2 -I../gnuplot-cpp
 
 clean:
-	rm -f hmmLabeling hmmMarginals hmmDirichletParticle
+	rm -f hmmLabeling hmmMarginals hmmMarginalOnline hmmDirichletParticle
