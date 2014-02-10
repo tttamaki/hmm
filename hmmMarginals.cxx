@@ -105,8 +105,14 @@ options parseOptions(int argc, char* argv[]) {
 
 
 
-
-
+inline
+double potts(const size_t label1,
+             const size_t label2,
+             const double same,  // cost for same labels
+             const double diff) // cost for different labels
+{
+    return (label1 == label2) ? same : diff;
+}
 
 
 
@@ -150,6 +156,10 @@ int main ( int argc, char **argv )
     //
     // construct gm of HMM
     //
+
+    // pairwise
+    double same = Opt.p; // p: parameter
+    double diff = (1.0-Opt.p) / (nClass-1); //2.0;
     {
         // singleton
         const size_t shape[] = {nClass};
@@ -171,9 +181,6 @@ int main ( int argc, char **argv )
         
         
         // pairwise
-        double same = Opt.p; // p: parameter
-        double diff = (1.0-Opt.p) / (nClass-1); //2.0;
-        
         opengm::PottsFunction<double> f2(nClass, nClass,
                                          same,  // cost for same labels
                                          diff); // cost for different labels
@@ -218,6 +225,49 @@ int main ( int argc, char **argv )
         }
     }
     
+    
+    
+    
+    std::vector< std::vector<double> > logAlphaOnline(dataSize);
+    // n=0
+    logAlphaOnline[0].resize(nClass);
+    for (size_t c = 0; c < nClass; c++) {
+        logAlphaOnline[0][c] = std::log(data[0][c] / nClass);
+    }
+    // n>=1
+    for (size_t n = 1; n < dataSize; n++) {
+        logAlphaOnline[n].resize(nClass);
+        std::vector<double> logSum(dataSize, 0.0);
+        
+        for (size_t i = 0; i < nClass; i++) {
+            std::vector<double> whichIsMax(nClass);
+           
+            for (size_t c = 0; c < nClass; c++) {
+                whichIsMax[c] = (logAlphaOnline[n-1][c] + std::log(potts(i,c, same, diff)));
+            }
+            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
+            for (size_t c = 0; c < nClass; c++) { logSum[i] += exp(whichIsMax[c] - maxVal); }
+            logSum[i] = std::log(logSum[i]) + maxVal;
+        }
+        
+        for (size_t c = 0; c < nClass; c++) {
+            logAlphaOnline[n][c] = std::log(data[n][c]) + logSum[c];
+        }
+    }
+    
+    
+    for (size_t n = 0; n < dataSize; n++) {
+        for (size_t c = 0; c < nClass; c++) {
+            alpha[n][c] = exp(logAlphaOnline[n][c]);
+        }
+    }
+
+    
+    
+    
+    
+    
+    
     std::vector< std::vector<double> > beta(dataSize);
     // n=N
     beta[dataSize-1].resize(nClass);
@@ -236,6 +286,43 @@ int main ( int argc, char **argv )
             }
         }
     }
+    
+    
+    std::vector< std::vector<double> > logBeta(dataSize);
+    // n=N
+    logBeta[dataSize-1].resize(nClass);
+    for (size_t c = 0; c < nClass; c++) {
+        logBeta[dataSize-1][c] = 0.0;
+    }
+    // n<N
+    for (int n = dataSize-2; n >= 0; n--) {
+        logBeta[n].resize(nClass);
+        for (size_t i = 0; i < nClass; i++) {
+            std::vector<double> whichIsMax(nClass);
+            logBeta[n][i] = 0;
+            for (size_t c = 0; c < nClass; c++) {
+                whichIsMax[c] = (logBeta[n+1][c] + std::log(data[n+1][c])
+                                 + std::log(potts(i,c,same,diff)));
+            }
+            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
+            for (size_t c = 0; c < nClass; c++) { logBeta[n][i] += exp(whichIsMax[c] - maxVal); }
+            logBeta[n][i] = std::log(logBeta[n][i]) + maxVal;
+        }
+    }
+    
+    for (size_t n = 0; n < dataSize; n++) {
+        for (size_t c = 0; c < nClass; c++) {
+            beta[n][c] = exp(logBeta[n][c]);
+        }
+    }
+    
+    
+    
+    
+    
+    
+    
+    
 
     double partitionZ = 0; // p(X)
     for (size_t c = 0; c < nClass; c++) {
