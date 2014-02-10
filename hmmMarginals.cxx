@@ -201,66 +201,101 @@ int main ( int argc, char **argv )
     // forward-backward algorithm implementaiton
     //
     
-    std::vector< std::vector<double> > alpha(dataSize);
+//    std::vector< std::vector<double> > alpha(dataSize);
+//    // n=0
+//    alpha[0].resize(nClass);
+//    for (size_t c = 0; c < nClass; c++) {
+//        size_t val[] = {c};
+//        alpha[0][c] = gm[0](val) / nClass;
+//    }
+//    // n>=1
+//    for (size_t n = 1; n < dataSize; n++) {
+//        alpha[n].resize(nClass);
+//        std::vector<double> sum(dataSize, 0.0);
+//        
+//        for (size_t i = 0; i < nClass; i++) {
+//            for (size_t c = 0; c < nClass; c++) {
+//                size_t val[] = {i,c};
+//                sum[i] += alpha[n-1][c] * gm[dataSize+n-1](val);
+//            }
+//        }
+//        for (size_t c = 0; c < nClass; c++) {
+//            size_t val[] = {c};
+//            alpha[n][c] = gm[n](val) * sum[c];
+//        }
+//    }
+//    
+    
+    
+    std::vector< std::vector<double> > alphaHat(dataSize);
+    std::vector<double> cHat(dataSize);
     // n=0
-    alpha[0].resize(nClass);
+    alphaHat[0].resize(nClass);
     for (size_t c = 0; c < nClass; c++) {
-        size_t val[] = {c};
-        alpha[0][c] = gm[0](val) / nClass;
+        alphaHat[0][c] = data[0][c] / nClass;
+    }
+    cHat[0] = std::accumulate(alphaHat[0].begin(), alphaHat[0].end(), 0.0);
+    for (size_t c = 0; c < nClass; c++) {
+        alphaHat[0][c] /= cHat[0];
     }
     // n>=1
     for (size_t n = 1; n < dataSize; n++) {
-        alpha[n].resize(nClass);
+        alphaHat[n].resize(nClass);
         std::vector<double> sum(dataSize, 0.0);
         
-        for (size_t i = 0; i < nClass; i++)
-            for (size_t c = 0; c < nClass; c++) {
-                size_t val[] = {i,c};
-                sum[i] += alpha[n-1][c] * gm[dataSize+n-1](val);
-            }
-        
-        for (size_t c = 0; c < nClass; c++) {
-            size_t val[] = {c};
-            alpha[n][c] = gm[n](val) * sum[c];
-        }
-    }
-    
-    
-    
-    
-    std::vector< std::vector<double> > logAlphaOnline(dataSize);
-    // n=0
-    logAlphaOnline[0].resize(nClass);
-    for (size_t c = 0; c < nClass; c++) {
-        logAlphaOnline[0][c] = std::log(data[0][c] / nClass);
-    }
-    // n>=1
-    for (size_t n = 1; n < dataSize; n++) {
-        logAlphaOnline[n].resize(nClass);
-        std::vector<double> logSum(dataSize, 0.0);
-        
         for (size_t i = 0; i < nClass; i++) {
-            std::vector<double> whichIsMax(nClass);
-           
             for (size_t c = 0; c < nClass; c++) {
-                whichIsMax[c] = (logAlphaOnline[n-1][c] + std::log(potts(i,c, same, diff)));
+                sum[i] += alphaHat[n-1][c] * potts(i,c, same, diff);
             }
-            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
-            for (size_t c = 0; c < nClass; c++) { logSum[i] += exp(whichIsMax[c] - maxVal); }
-            logSum[i] = std::log(logSum[i]) + maxVal;
         }
-        
+        for (size_t i = 0; i < nClass; i++) {
+            alphaHat[n][i] = data[n][i] * sum[i];
+        }
+
+        cHat[n] = std::accumulate(alphaHat[n].begin(), alphaHat[n].end(), 0.0);
         for (size_t c = 0; c < nClass; c++) {
-            logAlphaOnline[n][c] = std::log(data[n][c]) + logSum[c];
+            alphaHat[n][c] /= cHat[n];
         }
+
     }
     
     
-    for (size_t n = 0; n < dataSize; n++) {
-        for (size_t c = 0; c < nClass; c++) {
-            alpha[n][c] = exp(logAlphaOnline[n][c]);
-        }
-    }
+    
+    
+    
+//    std::vector< std::vector<double> > logAlphaOnline(dataSize);
+//    // n=0
+//    logAlphaOnline[0].resize(nClass);
+//    for (size_t c = 0; c < nClass; c++) {
+//        logAlphaOnline[0][c] = std::log(data[0][c] / nClass);
+//    }
+//    // n>=1
+//    for (size_t n = 1; n < dataSize; n++) {
+//        logAlphaOnline[n].resize(nClass);
+//        std::vector<double> logSum(dataSize, 0.0);
+//        
+//        for (size_t i = 0; i < nClass; i++) {
+//            std::vector<double> whichIsMax(nClass);
+//           
+//            for (size_t c = 0; c < nClass; c++) {
+//                whichIsMax[c] = (logAlphaOnline[n-1][c] + std::log(potts(i,c, same, diff)));
+//            }
+//            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
+//            for (size_t c = 0; c < nClass; c++) { logSum[i] += exp(whichIsMax[c] - maxVal); }
+//            logSum[i] = std::log(logSum[i]) + maxVal;
+//        }
+//        
+//        for (size_t c = 0; c < nClass; c++) {
+//            logAlphaOnline[n][c] = std::log(data[n][c]) + logSum[c];
+//        }
+//    }
+//    
+//    
+//    for (size_t n = 0; n < dataSize; n++) {
+//        for (size_t c = 0; c < nClass; c++) {
+//            alpha[n][c] = exp(logAlphaOnline[n][c]);
+//        }
+//    }
 
     
     
@@ -268,97 +303,177 @@ int main ( int argc, char **argv )
     
     
     
-    std::vector< std::vector<double> > beta(dataSize);
+//    std::vector< std::vector<double> > beta(dataSize);
+//    // n=N
+//    beta[dataSize-1].resize(nClass);
+//    for (size_t c = 0; c < nClass; c++) {
+//        beta[dataSize-1][c] = 1.0;
+//    }
+//    // n<N
+//    for (int n = dataSize-2; n >= 0; n--) {
+//        beta[n].resize(nClass);
+//        for (size_t i = 0; i < nClass; i++) {
+//            beta[n][i] = 0;
+//            for (size_t c = 0; c < nClass; c++) {
+//                size_t val1[] = {c};
+//                size_t val2[] = {i,c};
+//                beta[n][i] += beta[n+1][c] * gm[n+1](val1) * gm[dataSize+n](val2);
+//            }
+//        }
+//    }
+    
+    
+    
+    std::vector< std::vector<double> > betaHat(dataSize);
     // n=N
-    beta[dataSize-1].resize(nClass);
+    betaHat[dataSize-1].resize(nClass);
     for (size_t c = 0; c < nClass; c++) {
-        beta[dataSize-1][c] = 1.0;
+        betaHat[dataSize-1][c] = 1.0;
     }
     // n<N
     for (int n = dataSize-2; n >= 0; n--) {
-        beta[n].resize(nClass);
+        betaHat[n].resize(nClass);
         for (size_t i = 0; i < nClass; i++) {
-            beta[n][i] = 0;
+            betaHat[n][i] = 0;
             for (size_t c = 0; c < nClass; c++) {
-                size_t val1[] = {c};
-                size_t val2[] = {i,c};
-                beta[n][i] += beta[n+1][c] * gm[n+1](val1) * gm[dataSize+n](val2);
+                betaHat[n][i] += betaHat[n+1][c] * data[n+1][c] * potts(i,c,same,diff);
             }
-        }
-    }
-    
-    
-    std::vector< std::vector<double> > logBeta(dataSize);
-    // n=N
-    logBeta[dataSize-1].resize(nClass);
-    for (size_t c = 0; c < nClass; c++) {
-        logBeta[dataSize-1][c] = 0.0;
-    }
-    // n<N
-    for (int n = dataSize-2; n >= 0; n--) {
-        logBeta[n].resize(nClass);
-        for (size_t i = 0; i < nClass; i++) {
-            std::vector<double> whichIsMax(nClass);
-            logBeta[n][i] = 0;
-            for (size_t c = 0; c < nClass; c++) {
-                whichIsMax[c] = (logBeta[n+1][c] + std::log(data[n+1][c])
-                                 + std::log(potts(i,c,same,diff)));
-            }
-            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
-            for (size_t c = 0; c < nClass; c++) { logBeta[n][i] += exp(whichIsMax[c] - maxVal); }
-            logBeta[n][i] = std::log(logBeta[n][i]) + maxVal;
-        }
-    }
-    
-    for (size_t n = 0; n < dataSize; n++) {
-        for (size_t c = 0; c < nClass; c++) {
-            beta[n][c] = exp(logBeta[n][c]);
+            betaHat[n][i] /= cHat[n+1];
         }
     }
     
     
     
     
+//    std::vector< std::vector<double> > logBeta(dataSize);
+//    // n=N
+//    logBeta[dataSize-1].resize(nClass);
+//    for (size_t c = 0; c < nClass; c++) {
+//        logBeta[dataSize-1][c] = 0.0;
+//    }
+//    // n<N
+//    for (int n = dataSize-2; n >= 0; n--) {
+//        logBeta[n].resize(nClass);
+//        for (size_t i = 0; i < nClass; i++) {
+//            std::vector<double> whichIsMax(nClass);
+//            logBeta[n][i] = 0;
+//            for (size_t c = 0; c < nClass; c++) {
+//                whichIsMax[c] = (logBeta[n+1][c] + std::log(data[n+1][c])
+//                                 + std::log(potts(i,c,same,diff)));
+//            }
+//            double maxVal = *std::max_element(whichIsMax.begin(), whichIsMax.end());
+//            for (size_t c = 0; c < nClass; c++) { logBeta[n][i] += exp(whichIsMax[c] - maxVal); }
+//            logBeta[n][i] = std::log(logBeta[n][i]) + maxVal;
+//        }
+//    }
+//    
+//    for (size_t n = 0; n < dataSize; n++) {
+//        for (size_t c = 0; c < nClass; c++) {
+//            beta[n][c] = exp(logBeta[n][c]);
+//        }
+//    }
+    
+    
+
+//    // check
+//    for (size_t n = 0; n < dataSize; n++) {
+//        std::cout << "a ";
+//        for (size_t c = 0; c < nClass; c++) {
+//            std::cout << alpha[n][c] << " ";
+//        }
+//        std::cout << " aH ";
+//        double cm = 1;
+//        for (size_t m = 0; m <= n; m++) {
+//            cm *= cHat[m];
+//        }
+//        for (size_t c = 0; c < nClass; c++) {
+//            std::cout << cm * alphaHat[n][c] << " ";
+//        }
+//        std::cout << " aHnn ";
+//        for (size_t c = 0; c < nClass; c++) {
+//            std::cout << alphaHat[n][c] << " ";
+//        }
+//        std::cout << "b ";
+//        for (size_t c = 0; c < nClass; c++) {
+//            std::cout << beta[n][c] << " ";
+//        }
+//        std::cout << " bH ";
+//        cm = 1;
+//        for (size_t m = n+1; m < dataSize; m++) {
+//            cm *= cHat[m];
+//        }
+//        for (size_t c = 0; c < nClass; c++) {
+//            std::cout << cm * betaHat[n][c] << " ";
+//        }
+//        
+//        
+//        std::cout << std::endl;
+//        
+//    }
+
     
     
     
     
 
-    double partitionZ = 0; // p(X)
-    for (size_t c = 0; c < nClass; c++) {
-        partitionZ += alpha[dataSize-1][c];
-    }
+//    double partitionZ = 0; // p(X)
+//    for (size_t c = 0; c < nClass; c++) {
+//        partitionZ += alpha[dataSize-1][c];
+//    }
 
 
 
     
     // print alpha(z_n)
+//    if (! Opt.outfile_alpha_z_n.empty() ) {
+//        std::ofstream ofs(Opt.outfile_alpha_z_n);
+//        for(size_t n = 0; n < dataSize; n++) {
+//            double sum = 0;
+//            for (size_t c = 0; c < nClass; c++)
+//                sum += alpha[n][c];
+//            
+//            for (size_t c = 0; c < nClass; c++)
+//                ofs << alpha[n][c]/sum << (c < nClass-1 ? "," : "");
+//            
+//            ofs << std::endl;
+//        }
+//        ofs.close();
+//    }
     if (! Opt.outfile_alpha_z_n.empty() ) {
         std::ofstream ofs(Opt.outfile_alpha_z_n);
         for(size_t n = 0; n < dataSize; n++) {
-            double sum = 0;
+
             for (size_t c = 0; c < nClass; c++)
-                sum += alpha[n][c];
-            
-            for (size_t c = 0; c < nClass; c++)
-                ofs << alpha[n][c]/sum << (c < nClass-1 ? "," : "");
+                ofs << alphaHat[n][c] << (c < nClass-1 ? "," : "");
             
             ofs << std::endl;
         }
         ofs.close();
     }
+
     
     // print p(z_n|X)
+//    if (! Opt.outfile_p_z_n_X.empty() ) {
+//        std::ofstream ofs(Opt.outfile_p_z_n_X);
+//        for(size_t n = 0; n < dataSize; n++) {
+//            for (size_t c = 0; c < nClass; c++)
+//                ofs << alpha[n][c] * beta[n][c] / partitionZ << (c < nClass-1 ? "," : "");
+//            
+//            ofs << std::endl;
+//        }
+//        ofs.close();
+//    }
     if (! Opt.outfile_p_z_n_X.empty() ) {
         std::ofstream ofs(Opt.outfile_p_z_n_X);
         for(size_t n = 0; n < dataSize; n++) {
             for (size_t c = 0; c < nClass; c++)
-                ofs << alpha[n][c] * beta[n][c] / partitionZ << (c < nClass-1 ? "," : "");
+                ofs << alphaHat[n][c] * betaHat[n][c] << (c < nClass-1 ? "," : "");
             
             ofs << std::endl;
         }
         ofs.close();
     }
+
     //
     //
     //
